@@ -1,4 +1,7 @@
+[![Twitter](https://img.shields.io/badge/Twitter-%40jeckel4-blue.svg)](https://twitter.com/jeckel4) [![LinkedIn](https://img.shields.io/badge/LinkedIn-Julien%20Mercier-blue.svg)](https://www.linkedin.com/in/jeckel/)
 # Taskwarrior Server (taskd) Docker
+
+*Forked from [8sd/docker-taskd](https://github.com/8sd/docker-taskd)
 
 (c) 2015-2016 Óscar García Amor
 Redistribution, modifications and pull requests are welcomed under the terms
@@ -24,7 +27,7 @@ docker run -d \
   --name=taskd \
   -p 53589:53589 \
   -v /srv/taskd:/var/taskd \
-  andir/taskd
+  andir/docker-taskd
 ```
 
 This makes a set of self signed certificates and minimal configuration to
@@ -40,7 +43,7 @@ docker run -d \
   -p 53589:53589 \
   -v /srv/taskd:/var/taskd \
   -h <hostname>
-  andir/taskd
+  andir/docker-taskd
 ```
 
 Where `<hostname>` is the domain how the remote server can be reached.
@@ -74,10 +77,55 @@ docker in interactive mode, simply do.
 ```sh
 docker run -ti --rm \
   -v /srv/taskd:/var/taskd \
-  ogarcia/taskd /bin/sh
+  andir/docker-taskd /bin/sh
 ```
 
 This mounts the permanent data volume `/srv/taskd` into **taskd** data
 directory and gives you a interactive shell to work.
 
 Please note that the `--rm` modifier destroy the docker after shell exit.
+
+## Env variables
+
+- `TASKDDATA` : (mounted) folder where taskwarrior data will be stored
+- `CLIENT_CERT_PATH` : (mounted) folder where client certificate and credentials will be stored
+- `TASKD_ORGANIZATION` : Default organisation when creating new user
+- `TASKD_USERNAME` : User name for the first user
+
+## Use your own certificate configuration file with swarm
+
+If you want to customize certificate generation, you can mount your own configuration.
+
+This can really useful when using [configs](https://docs.docker.com/engine/swarm/configs/) in a docker swarm.
+
+First create a `vars` file like:
+```
+BITS=4096
+EXPIRATION_DAYS=365
+ORGANIZATION="My Organization"
+CN=my.organization.com
+COUNTRY=FR
+STATE="FRANCE"
+LOCALITY="Paris"
+```
+
+And then mount it:
+```sh
+docker run -d \
+  --name=taskd \
+  -p 53589:53589 \
+  -v /srv/taskd:/var/taskd \
+  -v ./vars:/var/taskd/pki/vars
+  andir/taskd
+```
+
+Or with the docker configs storage: 
+```sh
+docker config create taskd_vars vars
+docker run -d \
+  --name=taskd \
+  -p 53589:53589 \
+  -v /srv/taskd:/var/taskd \
+  --config source=taskd_vars,target=/var/taskd/pki/vars,mode=0440
+  andir/taskd
+```

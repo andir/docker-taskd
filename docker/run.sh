@@ -18,9 +18,13 @@ if ! test -e ${TASKDDATA}/config; then
 
   # Copy tools for certificates generation and generate it
   cp /usr/share/taskd/pki/generate* ${TASKDDATA}/pki
-  cp /usr/share/taskd/pki/vars ${TASKDDATA}/pki
+
   cd ${TASKDDATA}/pki
-  echo "CN=$(hostname -f)" >> ${TASKDDATA}/pki/vars
+  # Do not overwrite vars file if already mounted or injected
+  if ! test -e ${TASKDDATA}/pki/vars; then
+    cp /usr/share/taskd/pki/vars ${TASKDDATA}/pki
+    echo "CN=$(hostname -f)" >> ${TASKDDATA}/pki/vars
+  fi
   ./generate
   cd /
 
@@ -32,9 +36,11 @@ if ! test -e ${TASKDDATA}/config; then
   taskd config --force server.crl ${TASKDDATA}/pki/server.crl.pem
   taskd config --force ca.cert ${TASKDDATA}/pki/ca.cert.pem
 
-  # And finaly set taskd to listen in default port
+  # And finally set taskd to listen in default port
   taskd config --force server 0.0.0.0:53589
 
+  # Create first user
+  cd /app/taskd && ./createUser.sh
 fi
 
 # Exec CMD or taskd by default if nothing present
